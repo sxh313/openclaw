@@ -152,19 +152,15 @@ export function executeSharedStateCommand(
   open: () => OpenClawStateDatabase,
   hasNativeDatabase: boolean,
 ): Operations[keyof Operations]["output"] {
-  if (command.type === "execApprovals.commitAuthorizations") {
-    return commitExecAuthorizationsInWorker(command.input, {
+  if (command.type === "execApprovals.commitAuthorizations" || isOperatorApprovalCommand(command)) {
+    const databaseOptions = {
       database: open(),
       path: context.databasePath,
       env: getSqliteWorkerStateContext().environment,
-    });
-  }
-  if (isOperatorApprovalCommand(command)) {
-    return executeOperatorApprovalCommand(command, {
-      database: open(),
-      path: context.databasePath,
-      env: getSqliteWorkerStateContext().environment,
-    });
+    };
+    return command.type === "execApprovals.commitAuthorizations"
+      ? commitExecAuthorizationsInWorker(command.input, databaseOptions)
+      : executeOperatorApprovalCommand(command, databaseOptions);
   }
   if (command.type === "agentDatabases.releaseExitedLease") {
     return executeAgentDatabaseCleanupCommand(
