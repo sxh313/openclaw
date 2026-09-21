@@ -10,6 +10,10 @@ import type {
   ExecutionIdentityInspectionOutcome,
 } from "../audit/execution-identity-inspection.types.js";
 import type { FleetCellRecord } from "../fleet/registry.types.js";
+import type {
+  DevicePairingReadCommand,
+  DevicePairingReadReply,
+} from "../infra/device-pairing-read.types.js";
 import type { readExecApprovalsConfigRow } from "../infra/exec-approvals-sqlite.js";
 import type { SqliteWorkerStateContext } from "../infra/sqlite-worker-state-context.js";
 import type {
@@ -44,6 +48,7 @@ export type OpenClawStateReadAuthority = {
 };
 
 export type OpenClawStateReadCommand =
+  | DevicePairingReadCommand
   | PluginBlobReadCommand
   | { type: "exec-approvals.read" }
   | {
@@ -76,6 +81,7 @@ export type OpenClawStateReadRequest = {
   command: OpenClawStateReadCommand | { type: "admit" };
 };
 export type OpenClawStateReadReply = (
+  | DevicePairingReadReply
   | PluginBlobReadReply
   | {
       [Kind in keyof SkillLibraryReadOnlyOperations]: {
@@ -173,6 +179,8 @@ export type OpenClawStateReadOutcome =
 
 export type OpenClawStateReadPhase = "before-read" | "read" | "unobserved";
 export type OpenClawStateReadOptions = {
+  /** Publication and authority reads must not inherit an inspection snapshot. */
+  current?: boolean;
   mapError?: (error: unknown, phase: OpenClawStateReadPhase) => unknown;
 };
 

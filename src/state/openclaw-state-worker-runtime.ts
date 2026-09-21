@@ -43,12 +43,15 @@ import { registerSessionGroupInDatabase } from "../gateway/session-group-registr
 import { readDeferredPluginMigrations } from "../infra/deferred-plugin-migrations.js";
 import * as deliveryQueue from "../infra/delivery-queue.worker.js";
 import * as deviceAuth from "../infra/device-auth-store.kernel.js";
+import { executeDevicePairingMutationInWorker } from "../infra/device-pairing-dispatch.worker.js";
+import { isDevicePairingMutationCommand } from "../infra/device-pairing-worker-contract.js";
 import { commitExecAuthorizationsInWorker } from "../infra/exec-approvals-authorization.worker.js";
 import { executePromotionCommand } from "../infra/promotions-feed.worker.js";
 import {
   readApnsRegistrationFromDatabase,
   readApnsRegistrationsFromDatabase,
 } from "../infra/push-apns-store.js";
+import { registerApnsRegistrationInDatabase } from "../infra/push-apns-store.register.worker.js";
 import { readPersistedVapidKeyPairInDatabase } from "../infra/push-web-store.kernel.js";
 import { executeWebPushCommand } from "../infra/push-web-store.worker.js";
 import { isSessionDeliveryCommand } from "../infra/session-delivery-queue.worker-contract.js";
@@ -154,6 +157,9 @@ export function executeSharedStateCommand(
       path: context.databasePath,
       env: getSqliteWorkerStateContext().environment,
     });
+  }
+  if (isDevicePairingMutationCommand(command)) {
+    return executeDevicePairingMutationInWorker(command, open());
   }
   if (command.type === "agentDatabases.releaseExitedLease") {
     return executeAgentDatabaseCleanupCommand(
@@ -440,6 +446,9 @@ export function executeSharedStateCommand(
   }
   if (command.type === "managedImages.originalMediaIds") {
     return listManagedImageOriginalMediaIdsInDatabase(database.db);
+  }
+  if (command.type === "apns.registration.register") {
+    return registerApnsRegistrationInDatabase(database, command.input);
   }
   if (command.type === "apns.registration.read") {
     return readApnsRegistrationFromDatabase(database.db, command.input);

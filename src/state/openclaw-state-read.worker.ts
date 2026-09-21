@@ -11,6 +11,7 @@ import { readWorkspaceStateSnapshotForDirectoryInDatabase } from "../agents/work
 import { ExecutionDecisionCursorError } from "../audit/execution-decision-receipts.js";
 import { inspectExecutionIdentityRunInDatabase } from "../audit/execution-identity-context.js";
 import { getFleetCellInDatabase, listFleetCellsInDatabase } from "../fleet/registry.kernel.js";
+import { executeDevicePairingRead } from "../infra/device-pairing-read.kernel.js";
 import { readExecApprovalsConfigRow } from "../infra/exec-approvals-sqlite.js";
 import { runSqliteDeferredTransactionSync } from "../infra/sqlite-transaction.js";
 import { runWithSqliteWorkerStateContext } from "../infra/sqlite-worker-state-context.js";
@@ -64,6 +65,18 @@ function isReadRequest(input: unknown): input is OpenClawStateReadRequest {
     typeof coordinatorRuntime.directory === "string" &&
     typeof coordinatorRuntime.keepAlive === "boolean" &&
     (isPluginBlobReadCommand(input.command) ||
+      (input.command.type === "devicePairing.list" && typeof input.command.nowMs === "number") ||
+      (input.command.type === "devicePairing.lookup" &&
+        typeof input.command.deviceId === "string") ||
+      (input.command.type === "devicePairing.pending" &&
+        typeof input.command.requestId === "string" &&
+        typeof input.command.nowMs === "number") ||
+      (input.command.type === "devicePairing.bootstrapContext" &&
+        isRecord(input.command.input) &&
+        typeof input.command.input.token === "string" &&
+        typeof input.command.input.deviceId === "string" &&
+        typeof input.command.input.publicKey === "string" &&
+        typeof input.command.input.nowMs === "number") ||
       input.command.type === "admit" ||
       input.command.type === "exec-approvals.read" ||
       ((input.command.type === "skills.library.descriptions" ||
@@ -163,6 +176,14 @@ serveOwnedWorkerTasks(
             return withOpenClawStateReadOnlyLocation(
               ({ db }) => {
                 sourceAdmitted = true;
+                if (
+                  command.type === "devicePairing.list" ||
+                  command.type === "devicePairing.lookup" ||
+                  command.type === "devicePairing.pending" ||
+                  command.type === "devicePairing.bootstrapContext"
+                ) {
+                  return executeDevicePairingRead(db, input.databasePath, command);
+                }
                 if (command.type === "pluginBlob.lookup") {
                   return {
                     ok: true,
