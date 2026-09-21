@@ -21,17 +21,19 @@ import {
   OPERATOR_APPROVAL_RECEIPT_MAX_PAYLOAD_BYTES,
   decodeOperatorApprovalRow,
   isValidTimestamp,
-  type OperatorApprovalRecord,
-  type OperatorApprovalReceiptContext,
-  type OperatorApprovalExecutionLinkState,
-  type OperatorApprovalRow,
-  type OperatorApprovalReceiptSnapshotRow,
-  type OperatorApprovalDatabase,
-  type OperatorApprovalReceiptCursor,
-  type OperatorApprovalReceiptSnapshotQueryRow,
-  type OperatorApprovalReceiptRow,
-  type OperatorApprovalReceiptPage,
 } from "./operator-approval-store.rows.js";
+import type {
+  OperatorApprovalRecord,
+  OperatorApprovalReceiptContext,
+  OperatorApprovalExecutionLinkState,
+  OperatorApprovalRow,
+  OperatorApprovalReceiptSnapshotRow,
+  OperatorApprovalDatabase,
+  OperatorApprovalReceiptCursor,
+  OperatorApprovalReceiptSnapshotQueryRow,
+  OperatorApprovalReceiptRow,
+  OperatorApprovalReceiptPage,
+} from "./operator-approval-store.types.js";
 function operatorApprovalReasonCode(record: OperatorApprovalRecord): string {
   if (record.status === "allowed") {
     return record.decision === "allow-always"

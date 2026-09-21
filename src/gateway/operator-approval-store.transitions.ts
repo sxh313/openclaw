@@ -6,10 +6,7 @@ import {
   runOpenClawStateWriteTransaction,
   type OpenClawStateDatabaseOptions,
 } from "../state/openclaw-state-db.js";
-import {
-  mintCronStandingGrantLocked,
-  type CronStandingGrantMintSpec,
-} from "./operator-approval-standing-grants.js";
+import { mintCronStandingGrantLocked } from "./operator-approval-standing-grants.js";
 import {
   OPERATOR_APPROVAL_TERMINAL_RETENTION_MS,
   requireApprovalId,
@@ -22,32 +19,26 @@ import {
   requireDecodedRecord,
   clampAuditTimestamp,
   isValidTimestamp,
-  type OperatorApprovalDecision,
-  type OperatorApprovalResolver,
-  type OperatorApprovalKind,
-  type OperatorApprovalDatabase,
-  type OperatorApprovalTerminalReason,
-  type OperatorApprovalRecord,
-  type OperatorApprovalRow,
-  type ResolveOperatorApprovalResult,
-  type ForceDenyOperatorApprovalResult,
-  type TerminalizeOperatorApprovalsResult,
-  type ConsumeOperatorApprovalResult,
 } from "./operator-approval-store.rows.js";
-export function resolveOperatorApproval(params: {
-  id: string;
-  decision: OperatorApprovalDecision;
-  resolver: OperatorApprovalResolver;
-  expectedKind?: OperatorApprovalKind;
-  runtimeEpoch?: string;
-  nowMs?: number;
-  databaseOptions?: OpenClawStateDatabaseOptions;
-  mcpToolGrant?: { agentId: string; server: string; tool: string };
-  /** Cron-context allow-always mints this scoped grant in the same transaction. */
-  standingGrant?: { kind: "cron" } & CronStandingGrantMintSpec & {
-      expiresAtMs: number | null;
-    };
-}): ResolveOperatorApprovalResult {
+import type {
+  OperatorApprovalDatabase,
+  OperatorApprovalRecord,
+  OperatorApprovalRow,
+  ResolveOperatorApprovalResult,
+  ForceDenyOperatorApprovalResult,
+  TerminalizeOperatorApprovalsResult,
+  ConsumeOperatorApprovalResult,
+} from "./operator-approval-store.types.js";
+import type { OperatorApprovalWorkerOperations } from "./operator-approval-store.worker-contract.js";
+
+type Input<Key extends keyof OperatorApprovalWorkerOperations> =
+  OperatorApprovalWorkerOperations[Key]["input"] & {
+    databaseOptions?: OpenClawStateDatabaseOptions;
+  };
+
+export function resolveOperatorApprovalInDatabase(
+  params: Input<"operatorApprovals.resolve">,
+): ResolveOperatorApprovalResult {
   const id = requireApprovalId(params.id);
   const resolverId = normalizeNullableString(params.resolver.id);
   const runtimeEpoch =
@@ -155,17 +146,9 @@ export function resolveOperatorApproval(params: {
   }, params.databaseOptions);
 }
 
-export function forceDenyOperatorApproval(params: {
-  id: string;
-  status?: "denied" | "expired" | "cancelled";
-  requireDue?: boolean;
-  reason: OperatorApprovalTerminalReason;
-  resolver: OperatorApprovalResolver;
-  expectedKind?: OperatorApprovalKind;
-  runtimeEpoch?: string;
-  nowMs?: number;
-  databaseOptions?: OpenClawStateDatabaseOptions;
-}): ForceDenyOperatorApprovalResult {
+export function forceDenyOperatorApprovalInDatabase(
+  params: Input<"operatorApprovals.deny">,
+): ForceDenyOperatorApprovalResult {
   const id = requireApprovalId(params.id);
   const runtimeEpoch =
     params.runtimeEpoch === undefined
@@ -234,10 +217,9 @@ export function forceDenyOperatorApproval(params: {
   }, params.databaseOptions);
 }
 
-export function expireDueOperatorApprovals(params: {
-  nowMs?: number;
-  databaseOptions?: OpenClawStateDatabaseOptions;
-}): TerminalizeOperatorApprovalsResult {
+export function expireDueOperatorApprovalsInDatabase(
+  params: Input<"operatorApprovals.expire">,
+): TerminalizeOperatorApprovalsResult {
   return runOpenClawStateWriteTransaction((database) => {
     const nowMs = params.nowMs ?? Date.now();
     const stateDb = getNodeSqliteKysely<OperatorApprovalDatabase>(database.db);
@@ -358,15 +340,9 @@ export function closeOrphanedOperatorApprovals(params: {
   }, params.databaseOptions);
 }
 
-export function consumeOperatorApprovalAllowOnce(params: {
-  id: string;
-  consumerId: string;
-  expectedKind?: OperatorApprovalKind;
-  runtimeEpoch?: string;
-  redemptionWindowMs?: number;
-  nowMs?: number;
-  databaseOptions?: OpenClawStateDatabaseOptions;
-}): ConsumeOperatorApprovalResult {
+export function consumeOperatorApprovalAllowOnceInDatabase(
+  params: Input<"operatorApprovals.consume">,
+): ConsumeOperatorApprovalResult {
   const id = requireApprovalId(params.id);
   const consumerId = requireString(params.consumerId, "operator approval consumer id");
   const runtimeEpoch =

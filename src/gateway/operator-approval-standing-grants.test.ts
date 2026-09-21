@@ -32,8 +32,8 @@ import {
   insertOperatorApproval,
   resolveOperatorApproval,
 } from "./operator-approval-store.js";
-import { insertOperatorApproval as insertOperatorApprovalNative } from "./operator-approval-store.kernel.js";
-import { resolveOperatorApproval as resolveOperatorApprovalNative } from "./operator-approval-store.transitions.js";
+import { insertOperatorApprovalInDatabase as insertOperatorApprovalNative } from "./operator-approval-store.kernel.js";
+import { resolveOperatorApprovalInDatabase as resolveOperatorApprovalNative } from "./operator-approval-store.transitions.js";
 
 type StandingGrantDatabase = Pick<
   OpenClawStateKyselyDatabase,

@@ -35,28 +35,37 @@ export function executeOperatorApprovalCommand(
     const execute = () => {
       switch (command.type) {
         case "operatorApprovals.insert":
-          return store.insertOperatorApproval({ ...command.input, databaseOptions: options });
+          return store.insertOperatorApprovalInDatabase({
+            ...command.input,
+            databaseOptions: options,
+          });
         case "operatorApprovals.get":
-          return store.getOperatorApprovalDetailed({ ...command.input, databaseOptions: options });
+          return store.getOperatorApprovalDetailedInDatabase({
+            ...command.input,
+            databaseOptions: options,
+          });
         case "operatorApprovals.pending":
-          return store.listPendingOperatorApprovals({ ...command.input, databaseOptions: options });
+          return store.listPendingOperatorApprovalsInDatabase({
+            ...command.input,
+            databaseOptions: options,
+          });
         case "operatorApprovals.resolve":
-          return transitions.resolveOperatorApproval({
+          return transitions.resolveOperatorApprovalInDatabase({
             ...command.input,
             databaseOptions: options,
           });
         case "operatorApprovals.deny":
-          return transitions.forceDenyOperatorApproval({
+          return transitions.forceDenyOperatorApprovalInDatabase({
             ...command.input,
             databaseOptions: options,
           });
         case "operatorApprovals.expire":
-          return transitions.expireDueOperatorApprovals({
+          return transitions.expireDueOperatorApprovalsInDatabase({
             ...command.input,
             databaseOptions: options,
           });
         case "operatorApprovals.consume":
-          return transitions.consumeOperatorApprovalAllowOnce({
+          return transitions.consumeOperatorApprovalAllowOnceInDatabase({
             ...command.input,
             databaseOptions: options,
           });

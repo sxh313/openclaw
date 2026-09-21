@@ -4,8 +4,11 @@ import { executeExistingOpenClawStateRead } from "../state/openclaw-state-db-rea
 import type { OpenClawStateDatabaseOptions } from "../state/openclaw-state-db.js";
 import { captureOpenClawStateWorkerContext } from "../state/openclaw-state-worker-context.js";
 import { runOpenClawStateWorkerOperation } from "../state/openclaw-state-worker-store.js";
-import type * as kernel from "./operator-approval-store.kernel.js";
 import { decodeOperatorApprovalHistoryCursor } from "./operator-approval-store.rows.js";
+import type {
+  ListTerminalOperatorApprovalsInput,
+  ListTerminalOperatorApprovalsResult,
+} from "./operator-approval-store.types.js";
 import type { OperatorApprovalWorkerOperations } from "./operator-approval-store.worker-contract.js";
 
 export type {
@@ -16,7 +19,7 @@ export type {
   OperatorApprovalRecord,
   ResolveOperatorApprovalResult,
   ForceDenyOperatorApprovalResult,
-} from "./operator-approval-store.rows.js";
+} from "./operator-approval-store.types.js";
 export {
   OPERATOR_APPROVAL_MAX_AUDIENCE_SESSION_KEYS,
   OperatorApprovalHistoryCursorError,
@@ -97,8 +100,8 @@ export function consumeOperatorApprovalAllowOnce(params: Input<"operatorApproval
 }
 
 export async function listTerminalOperatorApprovals(
-  params: Parameters<typeof kernel.listTerminalOperatorApprovals>[0] & Options = {},
-): Promise<ReturnType<typeof kernel.listTerminalOperatorApprovals>> {
+  params: ListTerminalOperatorApprovalsInput & Options = {},
+): Promise<ListTerminalOperatorApprovalsResult> {
   const { databaseOptions, assertCurrent, ...input } = params;
   if (input.cursor !== undefined) {
     decodeOperatorApprovalHistoryCursor(input.cursor);

@@ -13,7 +13,7 @@ import {
   runOpenClawStateWriteTransaction,
   type OpenClawStateDatabaseOptions,
 } from "../state/openclaw-state-db.js";
-import { matchesOperatorApprovalReviewerBinding } from "./operator-approval-authorization.js";
+import { matchesOperatorApprovalReviewerBinding } from "./operator-approval-reviewer-binding.js";
 import {
   OPERATOR_APPROVAL_TERMINAL_RETENTION_MS,
   OPERATOR_APPROVAL_MAX_AUDIENCE_SESSION_KEYS,
@@ -36,19 +36,26 @@ import {
   expirePendingRow,
   decodeOperatorApprovalHistoryCursor,
   encodeOperatorApprovalHistoryCursor,
-  type NewOperatorApproval,
-  type InsertOperatorApprovalResult,
-  type GetOperatorApprovalResult,
-  type OperatorApprovalDatabase,
-  type OperatorApprovalKind,
-  type OperatorApprovalRecord,
-  type ListTerminalOperatorApprovalsResult,
 } from "./operator-approval-store.rows.js";
-import { expireDueOperatorApprovals } from "./operator-approval-store.transitions.js";
-export function insertOperatorApproval(params: {
-  approval: NewOperatorApproval;
-  databaseOptions?: OpenClawStateDatabaseOptions;
-}): InsertOperatorApprovalResult {
+import { expireDueOperatorApprovalsInDatabase } from "./operator-approval-store.transitions.js";
+import type {
+  InsertOperatorApprovalResult,
+  GetOperatorApprovalResult,
+  OperatorApprovalDatabase,
+  OperatorApprovalRecord,
+  ListTerminalOperatorApprovalsInput,
+  ListTerminalOperatorApprovalsResult,
+} from "./operator-approval-store.types.js";
+import type { OperatorApprovalWorkerOperations } from "./operator-approval-store.worker-contract.js";
+
+type Input<Key extends keyof OperatorApprovalWorkerOperations> =
+  OperatorApprovalWorkerOperations[Key]["input"] & {
+    databaseOptions?: OpenClawStateDatabaseOptions;
+  };
+
+export function insertOperatorApprovalInDatabase(
+  params: Input<"operatorApprovals.insert">,
+): InsertOperatorApprovalResult {
   const input = params.approval;
   const id = requireApprovalId(input.id);
   const resolutionRef = buildApprovalResolutionRef({
@@ -186,12 +193,9 @@ export function insertOperatorApproval(params: {
   }, params.databaseOptions);
 }
 
-export function getOperatorApprovalDetailed(params: {
-  id: string;
-  allowTransportRef?: boolean;
-  nowMs?: number;
-  databaseOptions?: OpenClawStateDatabaseOptions;
-}): GetOperatorApprovalResult {
+export function getOperatorApprovalDetailedInDatabase(
+  params: Input<"operatorApprovals.get">,
+): GetOperatorApprovalResult {
   const locator = requireApprovalId(params.id);
   return runOpenClawStateWriteTransaction((database) => {
     const nowMs = params.nowMs ?? Date.now();
@@ -217,18 +221,13 @@ export function getOperatorApprovalDetailed(params: {
   }, params.databaseOptions);
 }
 
-export function listPendingOperatorApprovals(
-  params: {
-    kind?: OperatorApprovalKind;
-    sourceSessionKey?: string;
-    audienceSessionKey?: string;
-    reviewerDeviceId?: string;
-    limit?: number;
-    nowMs?: number;
-    databaseOptions?: OpenClawStateDatabaseOptions;
-  } = {},
+export function listPendingOperatorApprovalsInDatabase(
+  params: Input<"operatorApprovals.pending"> = {},
 ): OperatorApprovalRecord[] {
-  expireDueOperatorApprovals({ nowMs: params.nowMs, databaseOptions: params.databaseOptions });
+  expireDueOperatorApprovalsInDatabase({
+    nowMs: params.nowMs,
+    databaseOptions: params.databaseOptions,
+  });
   return runOpenClawStateWriteTransaction((database) => {
     const nowMs = params.nowMs ?? Date.now();
     const stateDb = getNodeSqliteKysely<OperatorApprovalDatabase>(database.db);
@@ -307,13 +306,8 @@ export function listPendingOperatorApprovals(
   }, params.databaseOptions);
 }
 
-export function listTerminalOperatorApprovals(
-  params: {
-    cursor?: string;
-    limit?: number;
-    kind?: OperatorApprovalKind;
-    nowMs?: number;
-  },
+export function listTerminalOperatorApprovalsInDatabase(
+  params: ListTerminalOperatorApprovalsInput,
   db: DatabaseSync,
 ): ListTerminalOperatorApprovalsResult {
   const requestedLimit = Number.isSafeInteger(params.limit)

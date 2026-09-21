@@ -11,7 +11,7 @@ import { readWorkspaceStateSnapshotForDirectoryInDatabase } from "../agents/work
 import { ExecutionDecisionCursorError } from "../audit/execution-decision-receipts.js";
 import { inspectExecutionIdentityRunInDatabase } from "../audit/execution-identity-context.js";
 import { getFleetCellInDatabase, listFleetCellsInDatabase } from "../fleet/registry.kernel.js";
-import { listTerminalOperatorApprovals } from "../gateway/operator-approval-store.kernel.js";
+import { listTerminalOperatorApprovalsInDatabase } from "../gateway/operator-approval-store.kernel.js";
 import { readExecApprovalsConfigRow } from "../infra/exec-approvals-sqlite.js";
 import { runSqliteDeferredTransactionSync } from "../infra/sqlite-transaction.js";
 import { runWithSqliteWorkerStateContext } from "../infra/sqlite-worker-state-context.js";
@@ -240,7 +240,7 @@ serveOwnedWorkerTasks(
                     ok: true,
                     type: command.type,
                     sourceAdmitted,
-                    history: listTerminalOperatorApprovals(command.input, db),
+                    history: listTerminalOperatorApprovalsInDatabase(command.input, db),
                   };
                 }
                 if (command.type === "onboardingRecommendations.read") {

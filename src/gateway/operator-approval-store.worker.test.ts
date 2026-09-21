@@ -54,11 +54,14 @@ it("preserves serialized records, first-answer wins, consumption and history thr
     expect(JSON.stringify(actual)).toBe(JSON.stringify(expected));
   sameBytes(
     await store.insertOperatorApproval({ approval: input, databaseOptions }),
-    native.insertOperatorApproval({ approval: input, databaseOptions: originalOptions }),
+    native.insertOperatorApprovalInDatabase({ approval: input, databaseOptions: originalOptions }),
   );
   sameBytes(
     await store.listPendingOperatorApprovals({ nowMs: 2000, databaseOptions }),
-    native.listPendingOperatorApprovals({ nowMs: 2000, databaseOptions: originalOptions }),
+    native.listPendingOperatorApprovalsInDatabase({
+      nowMs: 2000,
+      databaseOptions: originalOptions,
+    }),
   );
   const verdict = {
     id: input.id,
@@ -68,11 +71,14 @@ it("preserves serialized records, first-answer wins, consumption and history thr
   };
   sameBytes(
     await store.resolveOperatorApproval({ ...verdict, databaseOptions }),
-    nativeTransitions.resolveOperatorApproval({ ...verdict, databaseOptions: originalOptions }),
+    nativeTransitions.resolveOperatorApprovalInDatabase({
+      ...verdict,
+      databaseOptions: originalOptions,
+    }),
   );
   sameBytes(
     await store.resolveOperatorApproval({ ...verdict, decision: "deny", databaseOptions }),
-    nativeTransitions.resolveOperatorApproval({
+    nativeTransitions.resolveOperatorApprovalInDatabase({
       ...verdict,
       decision: "deny",
       databaseOptions: originalOptions,
@@ -81,14 +87,14 @@ it("preserves serialized records, first-answer wins, consumption and history thr
   const consume = { id: input.id, consumerId: "synthetic-consumer", nowMs: 4000 };
   sameBytes(
     await store.consumeOperatorApprovalAllowOnce({ ...consume, databaseOptions }),
-    nativeTransitions.consumeOperatorApprovalAllowOnce({
+    nativeTransitions.consumeOperatorApprovalAllowOnceInDatabase({
       ...consume,
       databaseOptions: originalOptions,
     }),
   );
   sameBytes(
     await store.listTerminalOperatorApprovals({ nowMs: 5000, databaseOptions }),
-    native.listTerminalOperatorApprovals(
+    native.listTerminalOperatorApprovalsInDatabase(
       { nowMs: 5000 },
       openOpenClawStateDatabase(originalOptions).db,
     ),
