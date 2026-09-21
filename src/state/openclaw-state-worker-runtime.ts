@@ -39,6 +39,10 @@ import {
   listManagedImageRecordEntriesInDatabase,
   listManagedImageOriginalMediaIdsInDatabase,
 } from "../gateway/managed-image-record-store.kernel.js";
+import {
+  executeOperatorApprovalCommand,
+  isOperatorApprovalCommand,
+} from "../gateway/operator-approval-store.worker.js";
 import { registerSessionGroupInDatabase } from "../gateway/session-group-registration.kernel.js";
 import { readDeferredPluginMigrations } from "../infra/deferred-plugin-migrations.js";
 import * as deliveryQueue from "../infra/delivery-queue.worker.js";
@@ -150,6 +154,13 @@ export function executeSharedStateCommand(
 ): Operations[keyof Operations]["output"] {
   if (command.type === "execApprovals.commitAuthorizations") {
     return commitExecAuthorizationsInWorker(command.input, {
+      database: open(),
+      path: context.databasePath,
+      env: getSqliteWorkerStateContext().environment,
+    });
+  }
+  if (isOperatorApprovalCommand(command)) {
+    return executeOperatorApprovalCommand(command, {
       database: open(),
       path: context.databasePath,
       env: getSqliteWorkerStateContext().environment,

@@ -10,6 +10,7 @@ import type {
   ExecutionIdentityInspectionOutcome,
 } from "../audit/execution-identity-inspection.types.js";
 import type { FleetCellRecord } from "../fleet/registry.types.js";
+import type { listTerminalOperatorApprovals } from "../gateway/operator-approval-store.kernel.js";
 import type { readExecApprovalsConfigRow } from "../infra/exec-approvals-sqlite.js";
 import type { SqliteWorkerStateContext } from "../infra/sqlite-worker-state-context.js";
 import type {
@@ -44,6 +45,10 @@ export type OpenClawStateReadAuthority = {
 };
 
 export type OpenClawStateReadCommand =
+  | {
+      type: "operatorApprovals.history";
+      input: Parameters<typeof listTerminalOperatorApprovals>[0];
+    }
   | PluginBlobReadCommand
   | { type: "exec-approvals.read" }
   | {
@@ -76,6 +81,12 @@ export type OpenClawStateReadRequest = {
   command: OpenClawStateReadCommand | { type: "admit" };
 };
 export type OpenClawStateReadReply = (
+  | {
+      ok: true;
+      type: "operatorApprovals.history";
+      sourceAdmitted: true;
+      history: ReturnType<typeof listTerminalOperatorApprovals>;
+    }
   | PluginBlobReadReply
   | {
       [Kind in keyof SkillLibraryReadOnlyOperations]: {

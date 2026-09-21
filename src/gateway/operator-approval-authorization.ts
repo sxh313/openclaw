@@ -1,5 +1,5 @@
 import { normalizeOptionalString } from "@openclaw/normalization-core/string-coerce";
-import { ADMIN_SCOPE, APPROVALS_SCOPE } from "./method-scopes.js";
+import { ADMIN_SCOPE, APPROVALS_SCOPE } from "./operator-scopes.js";
 import type { GatewayClient } from "./server-methods/types.js";
 
 type OperatorApprovalAccessBinding = {
@@ -64,8 +64,16 @@ export function canAccessOperatorApproval(params: {
     return true;
   }
 
-  const clientDeviceId = normalizeIdentity(params.client?.connect?.device?.id);
-  const reviewerDeviceIds = normalizeIdentities(params.binding.reviewerDeviceIds);
+  return matchesOperatorApprovalReviewerBinding(params.binding, params.client?.connect?.device?.id);
+}
+
+/** Match a durable binding after the caller's broad authority has been established. */
+export function matchesOperatorApprovalReviewerBinding(
+  binding: OperatorApprovalAccessBinding,
+  deviceId: string | null | undefined,
+): boolean {
+  const clientDeviceId = normalizeIdentity(deviceId);
+  const reviewerDeviceIds = normalizeIdentities(binding.reviewerDeviceIds);
   if (reviewerDeviceIds.length > 0) {
     return Boolean(clientDeviceId && reviewerDeviceIds.includes(clientDeviceId));
   }
