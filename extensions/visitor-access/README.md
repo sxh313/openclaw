@@ -80,6 +80,12 @@ A missing or unsuitable default refuses the invitation before
 writing the grant or adding the email to Cloudflare. Keep existing staff roles
 and their assignments when configuring the guest default.
 
+Guest admission is unsupported on Gateway versions that predate this role
+binding. Those versions reject `accessPolicyPlugin` and cannot enforce the local
+grant lifetime. Keep the binding and restricted Guest role intact when recovering
+access. Restoring older code or a stopped database backup does not establish safe
+Guest admission or restore authority for unfinished work.
+
 ## Invite, inspect, and revoke visitors
 
 | Tool             | Input                                                 | Result                                                                                     |
@@ -135,6 +141,10 @@ they can admit a guest. Startup and the existing hourly sweep perform that check
 missing membership or a failed read leaves the record non-authorizing. A later
 sweep or an explicit invite can qualify it. Once qualified, a grant keeps its
 recorded deadline across restart even while Cloudflare is unavailable.
+
+If an older Visitor writer renews a row without its grant ID, this version must
+confirm policy membership and assign a new ID again. Requalification preserves
+the recorded metadata and deadline; it does not revive an ended grant capture.
 
 An invite activates or extends its grant only after Cloudflare confirms the email
 is in the policy. Until then, an existing grant keeps its previous deadline. A
