@@ -9,6 +9,10 @@ import type {
   ExecutionIdentityInspectionQuery,
   ExecutionIdentityInspectionOutcome,
 } from "../audit/execution-identity-inspection.types.js";
+import type {
+  CronRunRecoveryReadCommand,
+  CronRunRecoveryObservation,
+} from "../cron/store/run-recovery.types.js";
 import type { FleetCellRecord } from "../fleet/registry.types.js";
 import type { readExecApprovalsConfigRow } from "../infra/exec-approvals-sqlite.js";
 import type {
@@ -50,6 +54,7 @@ export type OpenClawStateReadAuthority = {
 export type OpenClawStateReadCommand =
   | { type: "conversationBindings.inspect"; conversation: ConversationRef }
   | PluginBlobReadCommand
+  | CronRunRecoveryReadCommand
   | { type: "exec-approvals.read" }
   | {
       [Kind in keyof SkillLibraryReadOnlyOperations]: {
@@ -102,6 +107,12 @@ export type OpenClawStateReadReply = (
       type: "userProfiles.email.resolve";
       sourceAdmitted: true;
       profileId: string | undefined;
+    }
+  | {
+      ok: true;
+      type: "cron.observeRunRecovery";
+      sourceAdmitted: true;
+      observation: CronRunRecoveryObservation;
     }
   | {
       ok: true;
