@@ -2,6 +2,7 @@ import { IncomingMessage } from "node:http";
 import { Socket } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/types.openclaw.js";
+import { createSubsystemLogger } from "../logging/subsystem.js";
 import { closeOpenClawStateDatabaseForTest } from "../state/openclaw-state-db.js";
 import { onUserProfilesChanged } from "../state/user-profile-events.js";
 import {
@@ -13,7 +14,7 @@ import {
 import { withOpenClawTestState } from "../test-utils/openclaw-test-state.js";
 import { createAuthenticatedGitHubIdentitySync } from "./github-user-identity.js";
 import { resolveAuthenticatedHttpUserProfile } from "./http-auth-user-profile.js";
-import { resolveGatewayConnectUserProfile } from "./server/ws-connection/connect-user-profile.js";
+import { resolveGatewayConnectProfileAdmission } from "./server/ws-connection/connect-user-profile.js";
 
 const accessOrigin = "https://team.cloudflareaccess.com";
 const cfg: OpenClawConfig = {
@@ -81,17 +82,35 @@ describe("Cloudflare Access OIDC profile resolution", () => {
           const httpProfile = await resolveAuthenticatedHttpUserProfile(request);
           expect(httpProfile.authenticatedUserProfile?.profileId).toBe(profile.id);
           expect(httpProfile.operatorRolePolicy?.scopes).toEqual(["operator.admin"]);
-          const connectedProfile = await resolveGatewayConnectUserProfile({
+          const connectedProfile = await resolveGatewayConnectProfileAdmission({
+            context: {
+              configSnapshot: cfg,
+              handler: {
+                connId: "oidc-profile-admission",
+                logWsControl: createSubsystemLogger("test/oidc-profile-admission"),
+                close: vi.fn(),
+              },
+              markHandshakeFailure: vi.fn(),
+              sendHandshakeErrorResponse: vi.fn(),
+              releasePendingNodePairingCleanup: async () => {},
+            },
+            state: {
+              authResult: request.authResult,
+              authMethod: request.authResult.method,
+              role: "operator",
+            },
             ownerProfileExpected: false,
             authenticatedUserId: request.authResult.user,
-            authResult: request.authResult,
             resolveAuthenticatedGitHubIdentity: createAuthenticatedGitHubIdentitySync({
               authResult: request.authResult,
               authConfig: cfg.gateway?.auth,
               requestHeaders: request.req.headers,
             }),
           });
-          expect(connectedProfile).toEqual(httpProfile.authenticatedUserProfile);
+          expect(connectedProfile).toEqual({
+            ok: true,
+            profile: httpProfile.authenticatedUserProfile,
+          });
           expect(getUserProfileListItem(profile.id)).toEqual(before);
           expect(transport).toHaveBeenCalledTimes(2);
           expect(
